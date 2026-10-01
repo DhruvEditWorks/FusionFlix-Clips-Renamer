@@ -1,0 +1,12 @@
+{
+  "extends": "electron-builder.yml",
+  "win": {
+    "target": [
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "artifactName": "${productName} ${version}.${ext}"
+  }
+}

@@ -1,0 +1,20 @@
+# dependencies + build output (people build the source themselves)
+node_modules/
+dist/
+release/
+out/
+build/
+
+# the staged FFmpeg engine binaries are 60-180 MB — never in the repo
+ffmpeg/*.exe
+ffmpeg/*.zip
+ffmpeg/*.7z
+resources/ffmpeg/*.exe
+
+# caches, logs, OS noise
+.cache/
+*.log
+*.asar
+.DS_Store
+Thumbs.db
+*.ffclip.bak

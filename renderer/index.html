@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en" data-theme="cinema">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: ffthumb:; media-src ffmedia:; font-src 'self'; connect-src ffmedia: ffthumb:; form-action 'none'; base-uri 'none'">
+  <title>Fusion Flix — Clip Renamer &amp; Sorter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="app">
+
+  <!-- ===================== TOP BAR ===================== -->
+  <header class="topbar">
+    <div class="brand" title="Fusion Flix — Clip Renamer &amp; Sorter">
+      <canvas id="brandIcon" class="brand-icon" width="64" height="64" aria-hidden="true"></canvas>
+      <div class="brand-text">
+        <span class="brand-name">FUSION FLIX</span>
+        <span class="brand-sub">Clip Renamer &amp; Sorter</span>
+      </div>
+    </div>
+
+    <div class="project-block">
+      <label class="sr-only" for="projectName">Project name</label>
+      <input id="projectName" class="project-name" type="text" maxlength="80" value="Untitled Project"
+             spellcheck="false" title="Project name (stored inside the .ffclip file)">
+      <span id="dirtyDot" class="dirty-dot" hidden title="Unsaved changes">●</span>
+      <span id="projectMeta" class="project-meta">No clips loaded</span>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="btn-group" role="group" aria-label="Project">
+        <button id="btnNew" class="btn" title="New project (Ctrl+N)">New</button>
+        <button id="btnOpen" class="btn" title="Open project (Ctrl+O)">Open</button>
+        <button id="btnSave" class="btn" title="Save project (Ctrl+S)">Save</button>
+      </div>
+      <div class="btn-group" role="group" aria-label="Import">
+        <button id="btnImportClips" class="btn primary" title="Import clips (Ctrl+Shift+O)">Import Clips</button>
+        <button id="btnImportFolder" class="btn" title="Import a folder of clips (Ctrl+Shift+F)">Folder</button>
+      </div>
+      <div class="btn-group" role="group" aria-label="Output">
+        <button id="btnRename" class="btn accent" title="Rename the files in place — instant, no copying (Ctrl+Shift+R)">Rename</button>
+        <button id="btnExport" class="btn" title="Export copies into Scene folders (Ctrl+E)">Export</button>
+        <button id="btnSample" class="btn subtle" title="Load a generated sample project — no footage needed">Sample</button>
+        <button id="btnFocus" class="btn icon" title="Focus view — hide the side panels and give the preview the whole window (P)" aria-label="Focus view" data-icon="focus"></button>
+        <button id="btnTheme" class="btn icon" title="Switch theme — Cinema → Daylight (white) → Midnight (Shift+T)" aria-label="Switch theme" data-icon="contrast"></button>
+        <button id="btnSettings" class="btn icon" title="Settings (Ctrl+,)" aria-label="Settings" data-icon="gear"></button>
+        <button id="btnHelp" class="btn icon" title="Keyboard shortcuts (F1)" aria-label="Help" data-icon="help"></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== WORKSPACE ===================== -->
+  <!--  Preview (left) · Clip list (right) · Renaming console (bottom, full width)
+        — every divider below can be dragged, exactly like a compositing app. -->
+  <main class="workspace" id="workspace">
+
+    <!-- ---------- VIDEO PREVIEW (left) ---------- -->
+    <section class="pane preview" id="previewPane">
+      <div class="pane-head slim">
+        <div class="pane-title-row">
+          <h2 class="pane-title">PREVIEW</h2>
+          <span class="pane-count" id="previewCount">No clip selected</span>
+        </div>
+      </div>
+
+      <div class="preview-stage" id="previewStage">
+
+        <!-- Welcome / first-run panel -->
+        <div class="welcome" id="welcomePanel" hidden>
+          <canvas class="welcome-icon" id="welcomeIcon" width="96" height="96" aria-hidden="true"></canvas>
+          <h1 class="welcome-title">Fusion Flix</h1>
+          <p class="welcome-sub">Clip Renamer &amp; Sorter</p>
+          <p class="welcome-line">Organize your footage. One clip at a time.</p>
+          <div class="welcome-actions">
+            <button id="welcomeImport" class="btn primary large">Import Clips</button>
+            <button id="welcomeOpen" class="btn large">Open Project</button>
+          </div>
+          <button id="welcomeSample" class="linklike">or explore with the generated sample project</button>
+          <div class="welcome-engine" id="welcomeEngine" hidden>
+            <p class="welcome-engine-text">
+              <b>Previews of camera footage need the free media engine.</b>
+              HEVC/H.265, ProRes and 10-bit clips cannot be decoded by the built-in player on their own, so the app
+              installs FFmpeg into its own folder and builds a lightweight preview for them. One click, about 40 MB,
+              nothing to set up and nothing shared with anyone.
+            </p>
+            <button id="welcomeEngineInstall" class="btn accent" type="button">Install media engine</button>
+          </div>
+          <p class="welcome-footer">A free to use tool by Fusion Flix (Dhruv Sharma) 💓</p>
+          <button id="welcomeYouTube" class="btn yt-btn large" type="button"
+                  title="Fusion Flix on YouTube — youtube.com/@fusiononyoutube (opens in your browser)">
+            <span class="yt-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17"><path d="M9 6.5v11l9-5.5-9-5.5z" fill="currentColor"/></svg></span>
+            <span class="yt-text">Fusion On YouTube</span>
+          </button>
+        </div>
+
+        <!-- Main preview video -->
+        <video id="previewVideo" class="preview-video" playsinline preload="metadata" controlslist="nodownload noplaybackrate" disablepictureinpicture></video>
+
+        <!-- Still frame shown when the codec cannot be played in-app (HEVC & co.) -->
+        <img id="previewStill" class="preview-still" alt="" hidden>
+
+        <div class="preview-placeholder" id="previewPlaceholder">
+          <span class="ph-icon">▶</span>
+          <p>Select a clip from the list to preview it.</p>
+        </div>
+
+        <div class="preview-notice" id="previewNotice" hidden></div>
+
+        <!-- Hover scrub zones (overlay) -->
+        <div class="scrub-zone scrub-back" id="zoneBack" data-dir="-1" aria-hidden="true">
+          <span class="scrub-label">◀◀ BACKWARD</span>
+          <span class="scrub-speed" id="speedBack">1×</span>
+        </div>
+        <div class="scrub-zone scrub-fwd" id="zoneFwd" data-dir="1" aria-hidden="true">
+          <span class="scrub-label">FORWARD ▶▶</span>
+          <span class="scrub-speed" id="speedFwd">1×</span>
+        </div>
+
+        <!-- Overlays -->
+        <div class="preview-osd" id="previewOsd" hidden></div>
+        <div class="preview-badges" id="previewBadges"></div>
+        <button class="preview-missing" id="previewMissing" hidden>Media Missing — Relink Clip</button>
+      </div>
+
+      <!-- Transport -->
+      <div class="transport">
+        <div class="transport-row">
+          <button id="btnPrevClip" class="btn icon transport-btn" title="Previous clip (←)" aria-label="Previous clip" data-icon="prev"></button>
+          <button id="btnPlay" class="btn play" title="Play / Pause (Space) · J reverse · K stop · L play" aria-label="Play" data-icon="play"></button>
+          <button id="btnNextClip" class="btn icon transport-btn" title="Next clip (→)" aria-label="Next clip" data-icon="next"></button>
+          <span class="time-readout"><span id="curTime">00:00.0</span> <span class="time-sep">/</span> <span id="totalTime">00:00.0</span></span>
+          <span class="spacer"></span>
+          <button id="btnScrubHint" class="btn subtle mini" title="Hover preview: move the pointer to the left or right edge of the video to shuttle backwards or forwards. Distance sets the speed.">Hover-scrub ?</button>
+          <button id="btnMute" class="btn icon" title="Mute / unmute (M)" aria-label="Mute" data-icon="volume"></button>
+          <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" title="Volume">
+          <button id="btnReveal" class="btn icon" title="Show this clip in File Explorer" aria-label="Show in folder" data-icon="folder"></button>
+        </div>
+        <div class="timeline-row">
+          <input id="timeline" class="timeline" type="range" min="0" max="1000" step="1" value="0"
+                 aria-label="Timeline" title="Timeline — drag to seek">
+          <span class="timeline-mark" id="timelineMark"></span>
+        </div>
+      </div>
+
+      <div class="preview-strip" id="previewInfo">
+        <span class="strip-item muted">No clip selected</span>
+      </div>
+    </section>
+
+    <!-- drag me: preview  ↔  clip list -->
+    <div class="splitter v" id="splitMain" role="separator" aria-orientation="vertical" tabindex="0"
+         title="Drag to resize the preview and the clip list · double-click to reset"></div>
+
+    <!-- ---------- CLIP BROWSER (right) ---------- -->
+    <section class="pane browser" id="browserPane">
+      <div class="pane-head">
+        <div class="pane-title-row">
+          <h2 class="pane-title">CLIPS</h2>
+          <span class="pane-count" id="browserCount">0 clips</span>
+        </div>
+        <div class="search-row">
+          <input id="searchInput" class="input search" type="search" placeholder="Search filename, scene, custom name…"
+                 aria-label="Search clips" spellcheck="false" title="Search by filename, Scene, Shot, Take or custom name (press / to jump here)">
+          <button id="searchClear" class="btn icon mini" title="Clear search" aria-label="Clear search" data-icon="close"></button>
+        </div>
+        <div class="tools-row">
+          <label class="sr-only" for="sortKey">Sort clips by</label>
+          <select id="sortKey" class="input select" title="Sort the clip list">
+            <option value="import">Import order</option>
+            <option value="scene">Scene</option>
+            <option value="shot">Shot</option>
+            <option value="take">Take</option>
+            <option value="filename">Filename</option>
+          </select>
+          <button id="sortDir" class="btn icon" title="Toggle sort direction" aria-label="Toggle sort direction">↓</button>
+        </div>
+        <div class="chips-row" role="group" aria-label="Filters">
+          <button class="chip" id="chipUnnamed" data-filter="unnamed" title="Show only clips with no Scene/Shot/Take yet">Unnamed</button>
+          <button class="chip" id="chipMissing" data-filter="missing" title="Show only clips whose source file is missing">Missing</button>
+          <button class="chip" id="chipExtra" data-filter="extra" title="Show only EXTRA clips">Extras</button>
+          <button class="chip" id="chipApplied" data-filter="applied" title="Show only clips already applied">Applied</button>
+          <button class="chip ghost" id="chipClear" title="Clear all filters">Clear</button>
+        </div>
+      </div>
+
+      <div class="clip-list" id="clipList" tabindex="0" role="listbox" aria-label="Clips">
+        <div class="clip-list-inner" id="clipListInner"></div>
+        <div class="list-empty" id="listEmpty" hidden>
+          <p>No clips match this view.</p>
+          <button class="btn subtle" id="listEmptyClear">Clear filters</button>
+        </div>
+      </div>
+
+      <div class="pane-foot">
+        <span id="browserFoot">Drag clips or folders here, or use Import.</span>
+      </div>
+    </section>
+
+    <!-- drag me: workspaces  ↔  renaming console -->
+    <div class="splitter h" id="splitConsole" role="separator" aria-orientation="horizontal" tabindex="0"
+         title="Drag to resize the renaming console · double-click to reset"></div>
+
+    <!-- ---------- RENAMING CONSOLE (bottom, full width) ---------- -->
+    <section class="pane console" id="consolePane">
+      <div class="pane-head console-head">
+        <div class="pane-title-row">
+          <h2 class="pane-title">RENAMING CONSOLE</h2>
+          <span class="pane-count" id="infoPosition">—</span>
+        </div>
+        <div class="info-file" id="infoFile">
+          <div class="info-filename" id="infoFileName">No clip selected</div>
+          <div class="info-meta" id="infoFileMeta"></div>
+        </div>
+        <span class="spacer"></span>
+        <span class="console-hint" id="consoleHint">Enter = Apply &amp; Next · Ctrl+Enter = Apply · Shift+A/S/D = Scene/Shot/Take</span>
+      </div>
+
+      <div class="console-scroll" id="infoScroll">
+        <div class="console-fields">
+          <!-- SCENE -->
+          <section class="field-group" data-field="scene">
+            <label class="group-label">
+              <input type="checkbox" id="sceneOn" class="checkbox">
+              <span>SCENE</span>
+              <span class="group-badge" id="sceneBadge"></span>
+            </label>
+            <div class="field-row">
+              <input type="number" id="sceneInput" class="input number" min="0" max="99999" step="1" value="1"
+                     aria-label="Scene number" title="Scene number">
+              <button id="sceneNext" class="btn ghost next-btn" title="Use the previous clip's Scene + 1 (only affects Scene)">NEXT FROM PREVIOUS</button>
+            </div>
+            <div class="field-hint" id="sceneHint"></div>
+          </section>
+
+          <!-- SHOT -->
+          <section class="field-group" data-field="shot">
+            <label class="group-label">
+              <input type="checkbox" id="shotOn" class="checkbox">
+              <span>SHOT</span>
+              <span class="group-badge" id="shotBadge"></span>
+            </label>
+            <div class="field-row">
+              <input type="number" id="shotInput" class="input number" min="0" max="99999" step="1" value="1"
+                     aria-label="Shot number" title="Shot number">
+              <button id="shotNext" class="btn ghost next-btn" title="Use the previous clip's Shot + 1 (only affects Shot)">NEXT FROM PREVIOUS</button>
+            </div>
+            <div class="field-hint" id="shotHint"></div>
+          </section>
+
+          <!-- TAKE -->
+          <section class="field-group" data-field="take">
+            <label class="group-label">
+              <input type="checkbox" id="takeOn" class="checkbox">
+              <span>TAKE</span>
+              <span class="group-badge" id="takeBadge"></span>
+            </label>
+            <div class="field-row">
+              <input type="number" id="takeInput" class="input number" min="0" max="99999" step="1" value="1"
+                     aria-label="Take number" title="Take number">
+              <button id="takeNext" class="btn ghost next-btn" title="Use the previous clip's Take + 1 (only affects Take)">NEXT FROM PREVIOUS</button>
+            </div>
+            <div class="field-hint" id="takeHint"></div>
+          </section>
+
+          <!-- EXTRA -->
+          <section class="field-group inline" data-field="extra">
+            <label class="group-label toggle-label">
+              <input type="checkbox" id="extraOn" class="checkbox big">
+              <span>EXTRA</span>
+            </label>
+            <span class="field-hint inline-hint">Non-primary take (adds <code>_EXTRA</code> to the filename).</span>
+          </section>
+
+          <!-- CUSTOM NAME -->
+          <section class="field-group wide-field" data-field="custom">
+            <label class="group-label">
+              <input type="checkbox" id="customOn" class="checkbox">
+              <span>CUSTOM NAME</span>
+            </label>
+            <input type="text" id="customInput" class="input text" maxlength="120" placeholder="e.g. Opening Drone Shot"
+                   spellcheck="false" aria-label="Custom name" title="Overrides the standard filename. Scene/Shot/Take stay saved as metadata.">
+            <div class="field-hint" id="customHint">Overrides the standard filename. Scene / Shot / Take are still saved.</div>
+          </section>
+
+          <!-- FINAL FILENAME -->
+          <section class="final-name">
+            <div class="final-name-head">
+              <span class="final-name-label">FINAL FILENAME</span>
+              <button id="copyName" class="btn icon mini" title="Copy the filename" aria-label="Copy filename" data-icon="copy"></button>
+            </div>
+            <div class="final-name-value" id="finalName">—</div>
+            <div class="final-name-path" id="finalPath"></div>
+            <div class="final-name-time" id="finalTimeSource"></div>
+          </section>
+
+          <!-- ACTIONS -->
+          <div class="apply-actions">
+            <button id="btnApply" class="btn secondary" title="Save this clip's metadata (Ctrl+Enter)">APPLY TO CLIP</button>
+            <button id="btnApplyNext" class="btn primary large" title="Save and jump to the next clip (Enter)">APPLY &amp; NEXT</button>
+            <button id="btnDelete" class="btn danger" title="Remove this clip from the project (Delete)">DELETE CLIP</button>
+            <button id="btnConsoleRename" class="btn accent" title="Rename the tagged files in place — instant, no copying (Ctrl+Shift+R)">RENAME FILES</button>
+          </div>
+        </div>
+
+        <div class="clip-issues" id="clipIssues" hidden></div>
+      </div>
+
+      <div class="console-progress" id="consoleProgress" hidden>
+        <div class="cp-bar"><div class="cp-fill" id="consoleProgressFill"></div></div>
+        <span class="cp-label" id="consoleProgressLabel"></span>
+      </div>
+
+      <div class="console-foot">
+        <span class="media-status" id="mediaStatus"></span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== STATUS BAR ===================== -->
+  <footer class="statusbar">
+    <span class="status-item" id="statusClip">Clip 0 / 0</span>
+    <span class="status-sep">•</span>
+    <span class="status-item" id="statusCounts"></span>
+    <span class="spacer"></span>
+    <span class="status-item status-message" id="statusMessage"></span>
+    <span class="spacer"></span>
+    <span class="status-brand footer-brand">A free to use tool by Fusion Flix (Dhruv Sharma) 💓</span>
+    <button id="btnYouTube" class="btn yt-btn" type="button"
+            title="Fusion Flix on YouTube — youtube.com/@fusiononyoutube (opens in your browser)"
+            aria-label="Open the Fusion Flix YouTube channel">
+      <span class="yt-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15"><path d="M9 6.5v11l9-5.5-9-5.5z" fill="currentColor"/></svg></span>
+      <span class="yt-text">Fusion On YouTube</span>
+    </button>
+  </footer>
+</div>
+
+<!-- Drag & drop overlay -->
+<div class="drag-overlay" id="dragOverlay" hidden>
+  <div class="drag-box">
+    <span class="drag-icon">⤓</span>
+    <strong>Drop clips or folders to import</strong>
+    <span>MP4 · MOV · MKV · M4V and other common camera formats</span>
+    <span class="drag-hint">Your original files are never modified.</span>
+  </div>
+</div>
+
+<!-- Modal + toast roots -->
+<div class="modal-root" id="modalRoot" hidden></div>
+<div class="toast-root" id="toastRoot" aria-live="polite"></div>
+
+<!-- Shared pure logic (single source of truth in /lib, copied by npm run sync) -->
+<script src="../renderer/lib/sanitize.js"></script>
+<script src="../renderer/lib/filenames.js"></script>
+<script src="../renderer/lib/validate.js"></script>
+<script src="../renderer/lib/shortcuts.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+<script src="panels.js"></script>
+</body>
+</html>

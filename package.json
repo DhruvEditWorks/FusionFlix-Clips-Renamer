@@ -1,0 +1,47 @@
+{
+  "name": "fusion-flix-clip-renamer",
+  "productName": "Fusion Flix Clip Renamer & Sorter",
+  "version": "1.3.3",
+  "description": "Fusion Flix Clip Renamer & Sorter — an offline desktop utility for filmmakers to import, preview, tag, rename, sort and export large amounts of footage.",
+  "author": {
+    "name": "Dhruv Sharma (Fusion Flix)"
+  },
+  "license": "MIT",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node --test tests/",
+    "icons": "node tools/make-icons.js",
+    "uninstaller-stub": "node tools/make-uninstaller-stub.js",
+    "build": "electron-builder --win --x64",
+    "build:win": "electron-builder --win --x64",
+    "build:dir": "electron-builder --win --x64 --dir",
+    "build:portable": "electron-builder --win portable --x64 --config packaging/portable.json",
+    "build:all": "npm run build:win && npm run build:portable",
+    "build:ia32": "electron-builder --win --ia32",
+    "postinstall": "node tools/postinstall.js && node tools/sync-lib.js",
+    "sync": "node tools/stage-ffmpeg.js && node tools/sync-lib.js",
+    "prestart": "npm run sync",
+    "prebuild": "npm run sync",
+    "prebuild:win": "npm run sync",
+    "prebuild:portable": "npm run sync",
+    "pretest": "npm run sync",
+    "build:screenshots": "electron tools/make-screenshots.js",
+    "test:fallback": "electron tests/media-fallback.js",
+    "sync:clean": "node tools/stage-ffmpeg.js --clean"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1",
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

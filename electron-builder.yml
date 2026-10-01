@@ -1,0 +1,102 @@
+# ---------------------------------------------------------------------------
+# FUSION FLIX — CLIP RENAMER & SORTER
+# electron-builder configuration (Windows installers / portable builds)
+#
+#   npm run build:win        -> dist/Fusion Flix Clip Renamer & Sorter Setup.exe
+#   npm run build:portable   -> dist/Fusion Flix Clip Renamer & Sorter 1.0.0.exe
+#   npm run build:dir        -> dist/win-unpacked/  (fast, unpacked app)
+# ---------------------------------------------------------------------------
+
+appId: com.fusionflix.cliprenamer
+productName: Fusion Flix Clip Renamer & Sorter
+copyright: Copyright © 2026 Fusion Flix (Dhruv Sharma)
+
+directories:
+  output: dist
+  buildResources: packaging
+
+# ---- Files that go inside app.asar -----------------------------------------
+files:
+  - package.json
+  - main.js
+  - preload.js
+  - lib/**/*
+  - renderer/**/*
+  - icons/**/*
+  - assets/**/*
+  - "!**/node_modules/*/{test,tests,__tests__,example,examples,docs,doc,*.md,*.markdown}"
+  - "!**/node_modules/.bin"
+  - "!**/node_modules/ffmpeg-static/**"
+  - "!**/node_modules/ffprobe-static/**"
+  - "!**/*.map"
+
+asar: true
+
+# Only ship the locales we actually need (saves ~10 MB)
+electronLanguages:
+  - en-US
+
+# FFmpeg / FFprobe binaries must live outside the asar archive to be executable.
+# (They are shipped through the ./ffmpeg folder below, which guarantees the
+#  Windows binaries are the ones packaged even when building from Linux/macOS.)
+asarUnpack: []
+
+# Optional hand-placed binaries: put ffmpeg.exe + ffprobe.exe into ./ffmpeg
+# and they are always preferred over the npm ones (fully offline builds).
+extraResources:
+  - from: ffmpeg
+    to: ffmpeg
+    filter:
+      - "**/*"
+
+# Stamp the icon + version info in pure JavaScript (packaging/after-pack.js)
+# instead of letting electron-builder shell out to rcedit.exe through wine.
+# Cross-building from Linux/macOS therefore needs no wine at all, and a broken
+# wine can no longer produce an icon-less executable.
+afterPack: packaging/after-pack.js
+
+# ---- Windows -----------------------------------------------------------------
+win:
+  icon: icons/icon.ico
+  # The icon / version resources are written by the afterPack hook above, so
+  # electron-builder does not need to edit the executable itself.
+  signAndEditExecutable: false
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "${productName} Setup.${ext}"
+  publisherName: Fusion Flix
+  legalTrademarks: Fusion Flix
+  # Request ASAR integrity + elevation behaviour is left to the OS default.
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  menuCategory: false
+  shortcutName: Fusion Flix Clip Renamer & Sorter
+  uninstallDisplayName: Fusion Flix Clip Renamer & Sorter
+  installerIcon: icons/icon.ico
+  uninstallerIcon: icons/icon.ico
+  installerHeaderIcon: icons/icon.ico
+  deleteAppDataOnUninstall: false
+  include: packaging/installer.nsh
+  # Custom NSIS script: electron-builder's stock flow builds the uninstaller by
+  # running the freshly compiled installer as a Windows binary, which needs
+  # wine on Linux/macOS.  Our copy writes the uninstaller at install time with
+  # NSIS' WriteUninstaller instead (see the header of packaging/installer.nsi),
+  # so `npm run build:win` needs no wine and no runtime at all.
+  script: packaging/installer.nsi
+  artifactName: "${productName} Setup.${ext}"
+
+portable:
+  artifactName: "${productName} ${version}.${ext}"
+  requestExecutionLevel: user
+
+# No auto-update / no network publishing: this tool is fully offline.
+publish: null
