@@ -21,6 +21,13 @@ rename, sort, and export renamed copies anywhere — **without ever touching you
 
 The file is called `Fusion Flix Clip Renamer & Sorter Setup.exe` (~90 MB).
 
+> **About the download name:** GitHub does not allow spaces or `&` in release asset
+> names, so the attached file is listed as `Fusion-Flix-Clip-Renamer-and-Sorter-Setup.exe`.
+> It is exactly the installer the build produces as
+> `Fusion Flix Clip Renamer & Sorter Setup.exe` — that name is what you see in the
+> installer window, the Start-menu/desktop shortcut, and Windows *Apps & features*.
+> Renaming the downloaded file changes nothing.
+
 1. Run the installer and choose a folder (a normal user install, no admin rights needed).
 2. When it asks **“Download the media engine (FFmpeg) now?”** → choose **Yes**.
    That engine is what lets the app build **previews and thumbnails of camera footage**
